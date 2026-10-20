@@ -1055,7 +1055,7 @@ body.v-exp .toast{bottom:calc(var(--nav) + env(safe-area-inset-bottom) + 84px)}
 .tip .tiptxt{display:flex;flex-direction:column;gap:8px;align-items:flex-start;min-width:0}
 .infobtn{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:999px;background:var(--accent);color:var(--on-accent);font-weight:700;font-size:13px;padding:7px 12px;min-height:34px}
 @media (min-width:900px){
-  .sheet.side{left:auto;right:0;top:0;bottom:0;margin-left:0;width:440px;max-height:none;border-radius:20px 0 0 20px;transform:translateX(105%);padding-top:calc(8px + env(safe-area-inset-top))}
+  .sheet.side{left:auto;right:0;top:0;bottom:0;margin-left:0;width:clamp(500px,40vw,640px);max-height:none;border-radius:20px 0 0 20px;transform:translateX(105%);padding-top:calc(8px + env(safe-area-inset-top))}
   .sheet.side.show{transform:none}
   .sheet.side .grab{display:none}
 }
@@ -1064,7 +1064,7 @@ body.v-exp .toast{bottom:calc(var(--nav) + env(safe-area-inset-bottom) + 84px)}
 .fjp{color:var(--muted);font-size:13px;margin:2px 0 0 30px}
 .fgal{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;margin:12px -16px 4px;padding:0 16px;scrollbar-width:none}
 .fgal::-webkit-scrollbar{display:none}
-.fimg{flex:0 0 84%;aspect-ratio:4/3;border-radius:14px;overflow:hidden;scroll-snap-align:center;background:var(--surface-2);animation:shimmer 1.3s infinite linear;background-image:linear-gradient(90deg,var(--surface-2) 25%,color-mix(in srgb,var(--surface-2) 45%,var(--surface)) 50%,var(--surface-2) 75%);background-size:200% 100%}
+.fimg{flex:0 0 84%;max-width:460px;aspect-ratio:4/3;border-radius:14px;overflow:hidden;scroll-snap-align:center;background:var(--surface-2);animation:shimmer 1.3s infinite linear;background-image:linear-gradient(90deg,var(--surface-2) 25%,color-mix(in srgb,var(--surface-2) 45%,var(--surface)) 50%,var(--surface-2) 75%);background-size:200% 100%}
 .fimg.ok{animation:none;background:none}
 .fimg img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .35s}
 .fimg.ok img{opacity:1}
@@ -1080,6 +1080,13 @@ body.v-exp .toast{bottom:calc(var(--nav) + env(safe-area-inset-bottom) + 84px)}
 .fphr span{display:block;color:var(--muted);font-size:12.5px}
 .fphr em{font-style:normal;font-weight:600}
 .fcred{color:var(--muted);font-size:11.5px;margin:14px 0 4px;line-height:1.4}
+
+.fsel{appearance:none;-webkit-appearance:none;border:1px solid var(--line);background:var(--surface-2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23888' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E") no-repeat right 10px center;color:var(--ink);font:inherit;font-weight:700;font-size:15px;border-radius:12px;padding:9px 34px 9px 12px;min-height:42px;width:100%;margin:10px 0 2px;cursor:pointer}
+.fsel:focus{outline:2px solid var(--accent);outline-offset:1px}
+.finfo.swap{animation:vin .25s ease both}
+.sheet{overscroll-behavior:contain}
+.sheet.drag{transition:none!important}
+html.sheet-lock,html.sheet-lock body{overflow:hidden}
 </style>
 </head>
 <body>
@@ -1925,15 +1932,52 @@ function openSheet(html, onMount, opts){
   const sh=$('#sheet'), sc=$('#scrim'); sheetTok++; vote.sheetOpen = false; sh.classList.toggle('side', !!(opts && opts.side));
   const wasOpen = sh.classList.contains('show'), st = sh.scrollTop;
   $('#toast').classList.remove('show');
-  sh.innerHTML = '<div class="grab"></div>'+html; sh.hidden=false; sc.hidden=false;
+  sh.innerHTML = '<div class="grab"></div>'+html; sh.hidden=false; sc.hidden=false; sh.classList.remove('drag'); sh.style.transform = ''; document.documentElement.classList.add('sheet-lock');
   requestAnimationFrame(() => { sh.classList.add('show'); sc.classList.add('show'); });
   sh.scrollTop = wasOpen ? st : 0; onMount && onMount(sh);
 }
 function closeSheet(){
-  const sh=$('#sheet'), sc=$('#scrim'); vote.sheetOpen = false; if(sh.hidden) return; sh.classList.remove('show'); sc.classList.remove('show');
+  const sh=$('#sheet'), sc=$('#scrim'); vote.sheetOpen = false; document.documentElement.classList.remove('sheet-lock'); if(sh.hidden) return; sh.classList.remove('show','drag'); sh.style.transform = ''; sc.style.opacity = ''; sc.classList.remove('show');
   const tok = ++sheetTok; setTimeout(() => { if(tok!==sheetTok) return; sh.hidden=true; sc.hidden=true; sh.innerHTML=''; }, 220);
 }
 $('#scrim').addEventListener('click', closeSheet);
+/* ---------- alt panel: aşağı çekince kapan, arkadaki sayfa kaymasın ---------- */
+(function(){
+  const sh = $('#sheet'), sc = $('#scrim');
+  const isBottom = () => !(sh.classList.contains('side') && matchMedia('(min-width:900px)').matches);
+  const hScroller = el => { for(let n = el; n && n !== sh; n = n.parentElement){ if(n.scrollWidth > n.clientWidth + 2 && /auto|scroll/.test(getComputedStyle(n).overflowX)) return true; } return false; };
+  let g = null;
+  sh.addEventListener('touchstart', e => {
+    if(e.touches.length !== 1 || !isBottom()) { g = null; return; }
+    const t = e.touches[0];
+    g = {x:t.clientX, y:t.clientY, t:performance.now(), drag:false, dy:0, top: sh.scrollTop <= 0, h: hScroller(e.target), field: !!e.target.closest('input,textarea,select')};
+  }, {passive:true});
+  document.addEventListener('touchmove', e => {
+    if(sh.hidden) return;
+    if(!sh.contains(e.target)){ e.preventDefault(); return; }       // perde/arka plan: kaydırma yok
+    if(!g || e.touches.length !== 1) return;
+    const t = e.touches[0], dx = t.clientX - g.x, dy = t.clientY - g.y;
+    if(!g.drag){
+      if(g.h && Math.abs(dx) > Math.abs(dy)) return;                // yatay galeri kaydırması serbest
+      if(g.top && sh.scrollTop <= 0 && dy > 6 && dy > Math.abs(dx) && !g.field){ g.drag = true; g.y = t.clientY; sh.classList.add('drag'); }
+      else { if(sh.scrollHeight <= sh.clientHeight + 1 && !g.h) e.preventDefault(); return; }
+    }
+    e.preventDefault();
+    g.dy = Math.max(0, t.clientY - g.y);
+    sh.style.transform = `translateY(${g.dy}px)`;
+    sc.style.opacity = String(Math.max(.2, 1 - g.dy / (sh.offsetHeight || 400)));
+  }, {passive:false});
+  const end = () => {
+    if(!g || !g.drag){ g = null; return; }
+    const v = g.dy / Math.max(1, performance.now() - g.t);
+    sh.classList.remove('drag'); sc.style.opacity = '';
+    if(g.dy > Math.min(140, sh.offsetHeight * .3) || (v > .6 && g.dy > 30)) closeSheet();
+    else sh.style.transform = '';
+    g = null;
+  };
+  sh.addEventListener('touchend', end); sh.addEventListener('touchcancel', end);
+})();
+
 document.addEventListener('keydown', e => { if(e.key==='Escape') closeSheet(); });
 
 function citySheet(){
@@ -2795,12 +2839,14 @@ const FOOD_INFO = {
 };
 const LV = {kolay:['ok','Kolay'], orta:['mid','Dikkat'], zor:['hard','Zor']};
 function infoBtnHTML(cat){ const l = CAT[cat]; return FOOD_INFO[cat] ? `<button class="infobtn" data-info="${cat}">${ICON('book-open','sm')}${esc(String(l).split(' (')[0].split(' / ')[0])} nedir?</button>` : ''; }
-function foodInfo(cat){
+const foodCats = () => Object.keys(FOOD_INFO).filter(k => CAT[k]).sort((a, b) => CAT[a].localeCompare(CAT[b], 'tr'));
+function foodInfo(cat, swap){
   const f = FOOD_INFO[cat]; if(!f) return;
   const imgs = FOOD_IMG[cat] || [];
   const sec = (ic, title, body, lv) => `<section class="fsec"><h4>${ICON(ic,'sm')}${title}${lv ? `<span class="lvl ${LV[lv][0]}">${LV[lv][1]}</span>` : ''}</h4><p>${esc(body)}</p></section>`;
-  openSheet(`<div class="finfo">
+  openSheet(`<div class="finfo" data-cat="${cat}">
     <div class="fhead"><div><h3 style="margin:4px 0 0">${ICON(CAT_ICON[cat]||'utensils')}${esc(CAT[cat])}</h3><div class="fjp">${esc(f.jp)}</div></div><span class="spacer"></span><button class="iconbtn" data-close aria-label="Kapat">${ICON('x')}</button></div>
+    <select class="fsel" aria-label="Başka bir yemek türü seç">${foodCats().map(k => `<option value="${k}"${k===cat?' selected':''}>${esc(CAT[k])}</option>`).join('')}</select>
     ${imgs.length ? `<div class="fgal">${imgs.map(([src, page], i) => `<a class="fimg" href="${esc(page)}" target="_blank" rel="noopener" aria-label="Görsel ${i+1} kaynağı"><img src="${esc(src)}" alt="${esc(CAT[cat])} örneği ${i+1}" loading="${i ? 'lazy' : 'eager'}" referrerpolicy="no-referrer" onload="this.parentNode.classList.add('ok')" onerror="this.parentNode.remove()"></a>`).join('')}</div>` : ''}
     ${sec('info','Nedir?', f.d)}
     ${sec('utensils','İçinde ne var?', f.i)}
@@ -2813,7 +2859,10 @@ function foodInfo(cat){
       <div><span>Bunun içinde domuz var mı?</span><em>Kore ni buta-niku wa haitte imasu ka?</em></div>
     </div>
     <div class="fcred">Görseller: Wikimedia Commons (CC lisanslı; kaynağı görmek için görsele dokun). Helal/vejetaryen bilgisi genel yönlendirmedir; mekâna mutlaka sorun.</div>
-  </div>`, null, {side:true});
+  </div>`, sh => {
+    if(swap){ sh.scrollTop = 0; const fi = sh.querySelector('.finfo'); fi.classList.add('swap'); }
+    sh.querySelector('.fsel').addEventListener('change', ev => foodInfo(ev.target.value, true));
+  }, {side:true});
 }
 document.addEventListener('click', ev => { const b = ev.target.closest('[data-info]'); if(!b) return; ev.stopPropagation(); foodInfo(b.dataset.info); }, true);
 
