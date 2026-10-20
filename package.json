@@ -1,0 +1,9 @@
+{
+  "name": "japan-food",
+  "private": true,
+  "description": "Japonya yemek listesi PWA + bildirim fonksiyonu",
+  "type": "module",
+  "dependencies": {
+    "web-push": "^3.6.7"
+  }
+}
