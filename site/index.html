@@ -1025,6 +1025,31 @@ body.v-exp .toast{bottom:calc(var(--nav) + env(safe-area-inset-bottom) + 84px)}
 .pushban>.ic{color:var(--accent);flex:0 0 auto}
 .pushban span{flex:1}
 .pushban .iconbtn{width:34px;height:34px;color:var(--muted)}
+
+/* ---------- iskelet yükleme + yerleşim animasyonları ---------- */
+.sk{background:linear-gradient(90deg,var(--surface-2) 25%,color-mix(in srgb,var(--surface-2) 45%,var(--surface)) 50%,var(--surface-2) 75%);background-size:200% 100%;animation:shimmer 1.3s infinite linear;border-radius:8px;color:transparent!important}
+@keyframes shimmer{from{background-position:150% 0}to{background-position:-50% 0}}
+.skline{height:12px;margin:6px 0}
+.skcard{pointer-events:none}
+.skcard .skh{height:18px;width:70%;margin:2px 0 8px}
+.skcard .skrow{display:flex;gap:6px;margin:4px 0}
+.skcard .skpill{height:22px;width:84px;border-radius:999px}
+.skcard .skbtns{display:flex;gap:8px;margin-top:6px}
+.skcard .skbtn{height:42px;flex:1;border-radius:11px}
+.skchip{height:38px;width:96px;border-radius:999px;flex:0 0 auto}
+.skbub{height:44px;border-radius:18px;margin:10px 0}
+.skbub.r{margin-left:auto;width:58%}.skbub.l{width:64%}.skbub.l.s{width:42%}
+.mapsk{position:absolute;inset:0;z-index:450;display:grid;place-items:center;transition:opacity .35s}
+.mapsk.done{opacity:0;pointer-events:none}
+.mapsk .ic{width:42px;height:42px;color:var(--muted);stroke-width:1.5;animation:bob 1.2s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-6px)}}
+.rise{animation:rise .38s cubic-bezier(.2,.8,.2,1) both;animation-delay:var(--d,0ms)}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.vin{animation:vin .28s ease both}
+@keyframes vin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+#chatView.vin,#mapView.vin{animation-name:fadein}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion: reduce){.rise,.vin,.sk,.mapsk .ic{animation:none!important}}
 </style>
 </head>
 <body>
@@ -1181,7 +1206,7 @@ body.v-exp .toast{bottom:calc(var(--nav) + env(safe-area-inset-bottom) + 84px)}
         <label class="search"><svg class="ic"><use href="#i-search"/></svg><input id="q" type="search" placeholder="Mekân, semt veya yemek ara" autocomplete="off" enterkeyhint="search"><button class="clear" id="qClear" type="button" aria-label="Temizle" hidden><svg class="ic"><use href="#i-x"/></svg></button></label>
         <button class="filterbtn" id="filterBtn" aria-label="Filtreler"><svg class="ic"><use href="#i-sliders-horizontal"/></svg><span class="dot" id="filterDot" hidden></span></button>
       </div>
-      <div class="chips" id="catRow"></div>
+      <div class="chips" id="catRow"><span class="sk skchip"></span><span class="sk skchip"></span><span class="sk skchip"></span><span class="sk skchip"></span><span class="sk skchip"></span></div>
     </div>
     <div id="hdrHist" hidden>
       <div class="hist-hdr">
@@ -1215,7 +1240,7 @@ body.v-exp .toast{bottom:calc(var(--nav) + env(safe-area-inset-bottom) + 84px)}
   </div>
   <div class="refnote" id="refNote" hidden></div>
   <div class="tip" id="tip" hidden></div>
-  <div class="cards" id="cards"></div>
+  <div class="cards" id="cards"><article class="card skcard"><div class="sk skh"></div><div class="sk skline" style="width:45%"></div><div class="skrow"><span class="sk skpill"></span><span class="sk skpill"></span></div><div class="sk skline" style="width:60%"></div><div class="skbtns"><span class="sk skbtn"></span><span class="sk skbtn" style="flex:0 0 44px"></span><span class="sk skbtn" style="flex:0 0 44px"></span></div></article><article class="card skcard"><div class="sk skh"></div><div class="sk skline" style="width:45%"></div><div class="skrow"><span class="sk skpill"></span><span class="sk skpill"></span></div><div class="sk skline" style="width:60%"></div><div class="skbtns"><span class="sk skbtn"></span><span class="sk skbtn" style="flex:0 0 44px"></span><span class="sk skbtn" style="flex:0 0 44px"></span></div></article><article class="card skcard"><div class="sk skh"></div><div class="sk skline" style="width:45%"></div><div class="skrow"><span class="sk skpill"></span><span class="sk skpill"></span></div><div class="sk skline" style="width:60%"></div><div class="skbtns"><span class="sk skbtn"></span><span class="sk skbtn" style="flex:0 0 44px"></span><span class="sk skbtn" style="flex:0 0 44px"></span></div></article><article class="card skcard"><div class="sk skh"></div><div class="sk skline" style="width:45%"></div><div class="skrow"><span class="sk skpill"></span><span class="sk skpill"></span></div><div class="sk skline" style="width:60%"></div><div class="skbtns"><span class="sk skbtn"></span><span class="sk skbtn" style="flex:0 0 44px"></span><span class="sk skbtn" style="flex:0 0 44px"></span></div></article><article class="card skcard"><div class="sk skh"></div><div class="sk skline" style="width:45%"></div><div class="skrow"><span class="sk skpill"></span><span class="sk skpill"></span></div><div class="sk skline" style="width:60%"></div><div class="skbtns"><span class="sk skbtn"></span><span class="sk skbtn" style="flex:0 0 44px"></span><span class="sk skbtn" style="flex:0 0 44px"></span></div></article></div>
   <button class="more" id="more" hidden></button>
   <div class="foot">
     Veri: Google Maps (puan, yorum sayısı, fiyat aralığı, rezervasyon), Ekim 2026. Puanlar zamanla değişir; gitmeden önce açılış saatini kontrol edin.
@@ -1225,6 +1250,7 @@ body.v-exp .toast{bottom:calc(var(--nav) + env(safe-area-inset-bottom) + 84px)}
 </main>
 
 <section id="mapView" hidden>
+  <div class="mapsk sk" id="mapSk"><svg class="ic"><use href="#i-map-pin"/></svg></div>
   <div id="mapG" class="mapc" hidden></div>
   <div id="mapL" class="mapc" hidden></div>
   <div class="mapcount" id="mapCount"></div>
@@ -1512,6 +1538,7 @@ function renderList(){
   const vis = rows.slice(0, state.shown);
   $('#cards').innerHTML = vis.length ? vis.map((e,i) => cardHTML(e,i+1)).join('') :
     `<div class="empty">${ICON('search')}<div>Bu filtrede sonuç yok.</div></div>`;
+  animateIn($('#cards'), '.card');
   const more = $('#more');
   if(rows.length > state.shown){ more.hidden=false; more.dataset.mode='page'; more.innerHTML = ICON('chevron-down')+`Daha fazla (${rows.length-state.shown})`; }
   else if(capped){ more.hidden=false; more.dataset.mode='expand'; more.innerHTML = ICON('chevron-down')+`Kategorideki diğer ${total-rows.length} mekânı göster`; }
@@ -1581,6 +1608,7 @@ const GP = {
     const g = google.maps;
     // Bu satır Google'ın "harita yükleme" sayacını 1 artırır; oturum başına bir kez çalışır.
     this.map = new g.Map($('#mapG'), {center:{lat:CITY_C[state.city][0], lng:CITY_C[state.city][1]}, zoom:13, disableDefaultUI:true, gestureHandling:'greedy', clickableIcons:false, styles:gStyles(), backgroundColor:gBg()});
+    g.event.addListenerOnce(this.map, 'tilesloaded', mapLoaded);
     this.iw = new g.InfoWindow({maxWidth:300});
     this.iw.addListener('closeclick', () => { this.iwItem = null; });
     this.map.addListener('click', () => { this.iw.close(); this.iwItem = null; });
@@ -1656,6 +1684,7 @@ const LP = {
     if(this.tiles) return;
     this.tiles = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
       {maxZoom:20, maxNativeZoom:19, attribution:'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors'}).addTo(this.map);
+    this.tiles.once('load', mapLoaded);
   },
   icon(e){ const v = isVisited(e); return L.divIcon({className:'', iconSize:[26,26], iconAnchor:[13,13], popupAnchor:[0,-12], html:`<div class="pin ${v?'v':''} ${e.src.length?'vid':''}">${v?ICON('check'):''}</div>`}); },
   render(rows){
@@ -1686,8 +1715,10 @@ const LP = {
 };
 
 /* --- ortak --- */
+function mapLoaded(){ const s = $('#mapSk'); if(s) s.classList.add('done'); }
 async function getProvider(){
   if(MP) return MP;
+  setTimeout(mapLoaded, 6000); // karolar gelmese de iskeleti kaldır
   if(mapPref==='google' && !gFailed){
     try{ await GP.load(); if(!gFailed){ $('#mapG').hidden = false; GP.init(); MP = GP; } }
     catch(err){ gFailed = true; toast('Google Haritalar yüklenemedi, yedek harita kullanılıyor'); }
@@ -1736,7 +1767,7 @@ function renderHist(){
     html += `<section class="day"><h2>${esc(dayLabel(k))} <small>${esc(cs)}</small></h2>` + list.map(v => {
       const e = ITEM_BY_KEY.get(v.key);
       const sub = [CAT[v.cat]||'', CITY_NAME[v.city]||'', e&&e.r?('★ '+e.r.toFixed(1)):''].filter(Boolean).join(' · ');
-      return `<div class="visit"><span class="time">${TIME_FMT.format(new Date(v.ts))}</span>
+      return `<div class="visit" data-k="${v.id}"><span class="time">${TIME_FMT.format(new Date(v.ts))}</span>
         <div class="vbody"><div class="vname">${esc(v.n)}</div><div class="vsub">${esc(sub)}</div></div>
         ${e?`<a class="iconbtn" href="${esc(mapsUrl(e))}" target="_blank" rel="noopener" data-act="gmaps" data-i="${e.i}" aria-label="Google Maps">${ICON('external-link')}</a>`:''}
         <button class="iconbtn" data-act="expv" data-id="${v.id}" aria-label="Hesap gir">${ICON('wallet')}</button>
@@ -1744,7 +1775,35 @@ function renderHist(){
     }).join('') + `</section>`;
   }
   h.innerHTML = html;
+  animateIn(h, '.visit');
 }
+
+
+/* ---------- animasyon yardımcıları ---------- */
+// Sadece yeni gelen öğeleri sırayla "yükselerek" gösterir; yenilenen ama aynı kalan öğeler oynamaz.
+function animateIn(box, sel, opts){
+  if(!box) return;
+  const first = !box._seen, prev = box._seen || new Set(), now = new Set(), t0 = performance.now(); let i = 0;
+  const started = box._started || (box._started = new Map());
+  box.querySelectorAll(sel).forEach(el => {
+    const k = el.dataset.k || el.dataset.id || el.dataset.i || el.dataset.vk || ''; now.add(k);
+    if(prev.has(k)){
+      // yeniden çizildi ama animasyonu bitmemişti: kaldığı yerden devam etsin
+      const st = started.get(k);
+      if(st && t0 - st < 800){ el.style.setProperty('--d', (st - t0) + 'ms'); el.classList.add('rise'); }
+      return;
+    }
+    if(first && opts && opts.skipFirst) return;
+    const d = Math.min(i++, 9) * 35; started.set(k, t0 + d);
+    el.style.setProperty('--d', d + 'ms'); el.classList.add('rise');
+  });
+  box._seen = now;
+  if(started.size > 400) started.clear();
+}
+function viewIn(el){ if(!el) return; el.classList.remove('vin'); void el.offsetWidth; el.classList.add('vin'); }
+const skChat = () => ['r','l','l s','r','l'].map(c => `<div class="sk skbub ${c}"></div>`).join('');
+const skRows = n => Array.from({length:n}, () => `<div class="vrow" style="pointer-events:none"><div class="vhead"><span class="sk vcount"></span><div class="vtitle"><div class="sk skline" style="width:70%;height:15px"></div><div class="sk skline" style="width:45%"></div></div></div><div class="skbtns" style="display:flex;gap:8px;margin-top:10px"><span class="sk skbtn" style="height:38px;flex:1;border-radius:11px"></span><span class="sk skbtn" style="height:38px;flex:1;border-radius:11px"></span></div></div>`).join('');
+const skExp = () => `<section class="esum"><div class="sk skline" style="width:55%;height:20px"></div><div class="sk skline" style="width:35%;height:26px;margin:10px 0 16px"></div><div class="egrid"><div class="sk" style="height:58px;border-radius:14px"></div><div class="sk" style="height:58px;border-radius:14px"></div><div class="sk" style="height:58px;border-radius:14px"></div></div></section>` + Array.from({length:3}, () => `<div class="eitem" style="pointer-events:none"><div class="sk skline" style="width:60%;height:15px"></div><div class="sk skline" style="width:35%"></div><div class="skrow" style="display:flex;gap:6px"><span class="sk" style="height:22px;width:120px;border-radius:999px"></span><span class="sk" style="height:22px;width:150px;border-radius:999px"></span></div></div>`).join('');
 
 /* ---------- views ---------- */
 function setView(v){
@@ -1756,6 +1815,7 @@ function setView(v){
   $('#listView').hidden = v!=='list'; $('#mapView').hidden = v!=='map'; $('#histView').hidden = v!=='hist';
   measure();
   render();
+  viewIn({list:$('#listView'), map:$('#mapView'), hist:$('#histView'), chat:$('#chatView'), exp:$('#expView')}[v]);
   if(v==='map'){ setTimeout(() => MP && MP.resize(), 50); }
   if(v!=='list') window.scrollTo(0,0);
 }
@@ -2088,9 +2148,10 @@ function renderChat(forceBottom){
   const sc = $('#chatView');
   const atBottom = forceBottom || chat.firstOpen || (sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 140);
   const all = sortedMsgs();
+  if(!all.length && !chat.initialDone && chat.status!=='noconfig' && chat.status!=='error'){ box.innerHTML = skChat(); box._seen = null; $('#dayChips').hidden = true; measure(); return; }
   if(!all.length){
     box.innerHTML = `<div class="empty">${ICON('message-circle')}<div style="font-weight:700;color:var(--ink);margin-bottom:4px">${chat.status==='noconfig' ? 'Sohbet henüz kurulmadı' : 'Henüz mesaj yok'}</div><div>${chat.status==='noconfig' ? 'Bağlantı ayarları eklenince burada konuşabileceksiniz.' : 'İlk mesajı sen yaz. Listede veya haritada bir mekânın <b>gönder</b> düğmesiyle mekân da paylaşabilirsin.'}</div></div>`;
-    $('#dayChips').innerHTML = ''; $('#dayChips').hidden = true; measure(); return;
+    $('#dayChips').innerHTML = ''; $('#dayChips').hidden = true; box._seen = new Set(); measure(); return;
   }
   const days = new Map(); all.forEach(m => { const k = dayKey(m.ts); if(!days.has(k)) days.set(k, []); days.get(k).push(m); });
   let html = '';
@@ -2100,7 +2161,7 @@ function renderChat(forceBottom){
     for(const m of list){
       const mine = isMine(m), cont = prev && idOf(prev.n)===idOf(m.n) && (m.ts - prev.ts) < 5*60*1000;
       const pend = chat.pending.has(m.id);
-      html += `<div class="msg ${mine?'mine':'them'} ${cont?'cont':''}">
+      html += `<div class="msg ${mine?'mine':'them'} ${cont?'cont':''}" data-id="${m.id}">
         ${!mine && !cont ? `<div class="who" style="color:${nameColor(idOf(m.n))}">${esc(m.n)}</div>` : ''}
         <div class="bub">${m.p ? placeBubble(m) : ''}${m.t ? `<div class="txt">${linkify(m.t)}</div>` : ''}<span class="mt">${CHAT_TIME.format(new Date(m.ts))}${mine ? (pend ? ICON('history','xs') : ICON('check','xs')) : ''}</span></div></div>`;
       prev = m;
@@ -2108,6 +2169,7 @@ function renderChat(forceBottom){
     html += `</section>`;
   }
   box.innerHTML = html;
+  animateIn(box, '.msg', {skipFirst:true});
   const dc = $('#dayChips');
   if(days.size > 1){
     const today = dayKey(Date.now()), yest = dayKey(Date.now()-864e5);
@@ -2230,6 +2292,7 @@ function initExp(){
   exp.ref.on('child_added', s => onExp(s.key, s.val()));
   exp.ref.on('child_changed', s => onExp(s.key, s.val()));
   exp.ref.on('child_removed', s => { exp.items.delete(s.key); expChanged(); });
+  exp.ref.once('value', () => { exp.loaded = true; expChanged(); });
 }
 function onExp(id, v){ if(!v) return; exp.items.set(id, Object.assign({id}, v)); expChanged(); }
 let expRaf = 0;
@@ -2270,7 +2333,8 @@ function expLine(e){
   return t.join('');
 }
 function renderExp(){
-  const box = $('#expBody'); const s = expSummary(); const list = sortedExp(); const pend = pendingVisits();
+  const box = $('#expBody');
+  if(!exp.loaded && !exp.items.size && exp.ref){ box.innerHTML = skExp(); box._seen = null; return; } const s = expSummary(); const list = sortedExp(); const pend = pendingVisits();
   let h = '';
   // özet
   h += `<section class="esum">`;
@@ -2292,7 +2356,7 @@ function renderExp(){
   if(pend.length){
     h += `<h2 class="eh">Hesabı girilmemiş <small>Gittim dediğin yerler</small></h2><div class="pend">` + pend.slice(0, 8).map(v => {
       const d = new Date(v.ts);
-      return `<div class="pitem"><div class="vbody"><div class="vname">${esc(v.n)}</div><div class="vsub">${esc(SHORT_DAY.format(d)+' '+CHAT_TIME.format(d)+' · '+(CITY_NAME[v.city]||''))}</div></div>
+      return `<div class="pitem" data-k="${v.id}"><div class="vbody"><div class="vname">${esc(v.n)}</div><div class="vsub">${esc(SHORT_DAY.format(d)+' '+CHAT_TIME.format(d)+' · '+(CITY_NAME[v.city]||''))}</div></div>
         <button class="btn primary sm" data-exp="addv" data-vid="${v.id}">${ICON('plus','sm')}Hesap gir</button><button class="iconbtn" data-exp="skip" data-vid="${v.id}" aria-label="Hesap yok, gizle">${ICON('x')}</button></div>`;
     }).join('') + `</div>`;
   }
@@ -2314,6 +2378,7 @@ function renderExp(){
   }
   if(!exp.ref) h += `<div class="enote" style="margin-top:14px">${ICON('info','sm')}Bağlantı yok: kayıtlar internet gelince iki telefonda da görünür.</div>`;
   box.innerHTML = h;
+  animateIn(box, '.eitem,.pitem');
 }
 
 /* --- hesap formu --- */
@@ -2540,12 +2605,13 @@ function voteTag(e){
 }
 function votesSheet(){
   const list = votedPlaces();
-  const html = !list.length
+  const loading = !vote.loaded && !!vote.ref;
+  const html = loading ? skRows(3) : !list.length
     ? `<div class="empty" style="padding:24px 8px">${ICON('thumbs-up')}<div style="font-weight:700;color:var(--ink);margin-bottom:4px">Henüz oylanan mekân yok</div><div>Listede veya haritada bir mekânda <b>Gidelim</b>’e dokun; burada herkes görür.</div></div>`
     : list.map((v, i) => {
         const e = v.e, mine = v.by.some(x => x.id===me.uid);
         const meta = e ? [e.r ? '★ '+e.r.toFixed(1) : '', e.p || '', CAT[e.cats[0]] || e.k || '', CITY_NAME[e.city]].filter(Boolean).join(' · ') : (CITY_NAME[v.p.city] || '');
-        return `<div class="vrow">
+        return `<div class="vrow" data-vk="${v.vk}">
           <div class="vhead"><span class="vcount">${v.by.length}</span><div class="vtitle"><div class="vname">${esc(v.p.n)}</div><div class="vsub">${esc(meta)}</div></div></div>
           <div class="vby">${v.by.map(x => `<span class="tag ${x.id===me.uid?'vote':''}">${ICON('thumbs-up','sm')}${esc(x.n)}</span>`).join('')}</div>
           ${e ? `<div class="actions"><a class="btn primary" href="${esc(mapsUrl(e))}" target="_blank" rel="noopener" data-act="gmaps" data-i="${e.i}">${ICON('external-link','sm')}Maps</a>${e.ll?`<button class="btn" data-act="showmap" data-i="${e.i}">${ICON('map','sm')}Haritada</button>`:''}<button class="btn vote ${mine?'on':''}" data-act="vote" data-i="${e.i}">${ICON('thumbs-up','sm')}${mine?'Geri al':'Gidelim'}</button></div>` : ''}
@@ -2554,6 +2620,7 @@ function votesSheet(){
   openSheet(`<div class="votesheet"><h3>${ICON('thumbs-up')}Gidelim listesi<span class="spacer"></span><span class="live"><i></i>canlı</span><button class="iconbtn" data-close aria-label="Kapat">${ICON('x')}</button></h3>
     <div style="color:var(--muted);font-size:13.5px;margin:-8px 0 12px">En çok oy alan üstte. Bir mekânda “Gittim” denince oyları silinir.</div>${html}</div>`);
   vote.sheetOpen = true;
+  animateIn($('#sheet'), '.vrow[data-vk]');
 }
 
 
