@@ -1,4 +1,4 @@
-// Yeni sohbet mesajı / "Gidelim" oyu için diğer kişilere Web Push bildirimi gönderir.
+// Yeni sohbet mesajı / "Gidelim" oyu / uygulamaya giriş için diğer kişilere Web Push bildirimi gönderir.
 // Gizli anahtar Netlify ortam değişkeninde: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY
 import webpush from 'web-push';
 
@@ -27,9 +27,9 @@ export default async (req) => {
   let body;
   try { body = await req.json(); } catch (_) { return json({ error: 'bad json' }, 400); }
   const { kind, id, u } = body || {};
-  if (!['msg', 'vote', 'test'].includes(kind) || typeof u !== 'string' || u.length > 60) return json({ error: 'bad request' }, 400);
+  if (!['msg', 'vote', 'test', 'online'].includes(kind) || typeof u !== 'string' || u.length > 60) return json({ error: 'bad request' }, 400);
   const now = Date.now();
-  let payload, exclude = new Set(), only = null;
+  let payload, exclude = new Set(), only = null, allow = null;
 
   if (kind === 'msg') {
     const m = await dbGet(`chat/messages/${seg(id)}`);
@@ -43,6 +43,16 @@ export default async (req) => {
     if (!v || !v.p || !by || typeof by.ts !== 'number' || now - by.ts > FRESH_MS) return json({ skipped: 'not found or old' });
     exclude = new Set([u, idOf(by.n)]);
     payload = { title: 'Gidelim 👍', body: cut(`${by.n} gitmek istiyor: ${v.p.n}`, 160), tag: 'vote-' + id, url: './?v=votes' };
+  } else if (kind === 'online') {
+    // sadece "Biri uygulamaya girince" ayarını açmış ve süre eşiği aşılmış kişilere
+    const p = await dbGet(`presence/${seg(u)}`);
+    const c = p && p.conns && p.conns[id];
+    if (!p || !c || typeof c.ts !== 'number' || now - c.ts > FRESH_MS || typeof p.gap !== 'number') return json({ skipped: 'not found or old' });
+    const prefs = (await dbGet('prefs')) || {};
+    allow = new Set(Object.entries(prefs).filter(([, x]) => x && typeof x.online === 'number' && x.online > 0 && p.gap >= x.online * 3600e3).map(([pid]) => pid));
+    if (!allow.size) return json({ skipped: 'nobody subscribed' });
+    exclude = new Set([u, idOf(p.n)]);
+    payload = { title: 'Yemek JP', body: cut(`${p.n} uygulamaya girdi 👋`, 160), tag: 'online-' + u, url: './?v=chat' };
   } else {
     only = u;
     payload = { title: 'Yemek JP', body: 'Bildirimler çalışıyor 🎉', tag: 'test', url: './' };
@@ -53,6 +63,7 @@ export default async (req) => {
   const jobs = [];
   for (const [pid, devices] of Object.entries(subs)) {
     if (only ? pid !== only : exclude.has(pid)) continue;
+    if (allow && !allow.has(pid)) continue;
     for (const [sk, rec] of Object.entries(devices || {})) {
       if (!rec || !rec.sub || !rec.sub.endpoint) continue;
       jobs.push(webpush.sendNotification(rec.sub, JSON.stringify(payload), { TTL: 6 * 3600, urgency: 'high' })

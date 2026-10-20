@@ -1,0 +1,62 @@
+{
+  "rules": {
+    "chat": {
+      "messages": {
+        ".read": true,
+        "$id": {
+          ".write": "(!data.exists() && newData.exists()) || (data.exists() && !newData.exists() && data.child('p').exists())",
+          ".validate": "newData.hasChildren(['n', 'u', 'ts']) && (newData.hasChild('t') || newData.hasChild('p'))",
+          "n":  { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 30" },
+          "u":  { ".validate": "newData.isString() && newData.val().length <= 40" },
+          "ts": { ".validate": "newData.val() == now" },
+          "t":  { ".validate": "newData.isString() && newData.val().length <= 2000" },
+          "p":  { ".validate": "newData.hasChildren(['k', 'n'])" },
+          "$other": { ".validate": false }
+        }
+      }
+    },
+    "exp": {
+      ".read": true,
+      "$id": {
+        ".write": true,
+        ".validate": "newData.hasChildren(['n', 'ts', 'total', 'mode']) && newData.child('total').isNumber() && newData.child('total').val() >= 0 && newData.child('total').val() <= 100000000 && newData.child('ts').isNumber() && newData.child('n').isString() && newData.child('n').val().length <= 120 && (newData.child('mode').val() == 'split' || newData.child('mode').val() == 'own' || newData.child('mode').val() == 'settle')"
+      }
+    },
+    "votes": {
+      ".read": true,
+      "$vk": {
+        ".write": true,
+        ".validate": "!newData.exists() || newData.hasChild('p')"
+      }
+    },
+    "push": {
+      ".read": true,
+      "$pid": {
+        "$sk": {
+          ".write": true,
+          ".validate": "!newData.exists() || newData.hasChild('sub')"
+        }
+      }
+    },
+    "presence": {
+      ".read": true,
+      "$pid": {
+        ".write": true,
+        "n":     { ".validate": "newData.isString() && newData.val().length <= 30" },
+        "gap":   { ".validate": "newData.isNumber()" },
+        "on":    { ".validate": "newData.isNumber()" },
+        "last":  { ".validate": "newData.isNumber()" },
+        "conns": { "$c": { ".validate": "newData.hasChild('ts')" } },
+        "$other": { ".validate": false }
+      }
+    },
+    "prefs": {
+      ".read": true,
+      "$pid": {
+        ".write": true,
+        "online": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 24" },
+        "$other": { ".validate": false }
+      }
+    }
+  }
+}

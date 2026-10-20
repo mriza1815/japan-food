@@ -1109,6 +1109,24 @@ html.sheet-lock,html.sheet-lock body{overflow:hidden}
 .sayact{display:flex;gap:8px;justify-content:center;margin-top:18px}
 .sayact .btn{min-height:46px}
 .sayact .btn:not(.primary){width:52px;font-size:22px;font-weight:700;color:#111;background:#f2f0ec;border-color:#e2ded6}
+
+/* ---------- çevrimiçi göstergesi + bildirim ayarları ---------- */
+.netdot.pres{gap:10px;max-width:calc(100vw - 210px);overflow:hidden;white-space:nowrap;padding:3px 0 3px 3px;margin-left:-3px}
+.pp{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;color:var(--muted)}
+.pp i{width:8px;height:8px;border-radius:50%;background:var(--muted);opacity:.45;flex:0 0 auto}
+.pp.on{color:var(--ink)}
+.pp.on i{background:#16a34a;opacity:1;box-shadow:0 0 0 3px color-mix(in srgb,#16a34a 22%,transparent)}
+.nset-dev{display:flex;align-items:center;gap:10px;padding:12px;border-radius:14px;background:var(--surface-2);font-size:14px;margin-top:-4px}
+.nset-dev span{flex:1}
+.nset-dev.on{background:var(--good-soft);color:var(--good);font-weight:600}
+.nset-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.nset-row div{flex:1}
+.nset-row .ic{color:var(--good)}
+.nset-row b,.nset-tg b{display:block;font-weight:600}
+.nset-row small,.nset-tg small,.nset-h small{display:block;color:var(--muted);font-size:12.5px;font-weight:400;margin-top:1px}
+.sheet .nset-tg{border-top:0}
+.nset-h{padding:0 0 10px}
+.nset-h .opts{margin-top:8px}
 </style>
 </head>
 <body>
@@ -2183,7 +2201,7 @@ const FB_CONFIG = {"apiKey":"AIzaSyCK-_zqkv3Q-4rGU7DMn1G85WXe2E9kIQg","authDomai
 // Kimlik isme bağlı: aynı isimle (büyük/küçük harf ve Türkçe karakter farkı önemsiz) giren her cihaz aynı kişi sayılır.
 const idOf = n => 'n_' + String(n||'').toLocaleLowerCase('tr').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ı/g, 'i').replace(/[^a-z0-9]/g, '');
 const me = { name: store.get('yjp_name', ''), uid: '' };
-function setMe(name){ me.name = name; me.uid = name ? idOf(name) : ('u' + Date.now().toString(36)); store.set('yjp_name', name); store.set('yjp_uid', me.uid); }
+function setMe(name){ const ou = me.uid; me.name = name; me.uid = name ? idOf(name) : ('u' + Date.now().toString(36)); store.set('yjp_name', name); store.set('yjp_uid', me.uid); if(window.__presOn) presRestart(ou); }
 setMe(me.name);
 const isMine = m => m.u===me.uid || (!!me.name && idOf(m.n)===me.uid);
 const chat = { msgs: new Map(), status: FB_CONFIG ? 'connecting' : 'noconfig', ref: null, initialDone: false, pending: new Set(), lastRead: store.get('yjp_chat_read', 0), raf: 0, firstOpen: true };
@@ -2241,6 +2259,8 @@ function renderChatStatus(){
   const d = $('#netDot'); if(!d) return;
   const map = {online:['on','Çevrimiçi'], offline:['off','Çevrimdışı · mesajlar bağlanınca gider'], connecting:['wait','Bağlanıyor…'], noconfig:['off','Sohbet henüz kurulmadı'], error:['off','Bağlantı hatası']};
   const [cls, txt] = map[chat.status] || map.connecting;
+  const ph = chat.status==='online' && window.__presOn ? presHTML() : '';
+  if(ph){ d.className = 'netdot pres'; d.innerHTML = ph; return; }
   d.className = 'netdot ' + cls; d.innerHTML = '<i></i>' + txt;
 }
 function nameColor(uid){ let h = 0; for(const c of uid) h = (h*31 + c.charCodeAt(0)) % 360; return `hsl(${h} 60% ${effectiveTheme()==='dark' ? '68%' : '38%'})`; }
@@ -2802,18 +2822,23 @@ function renderPushUI(){
   }
 }
 function pushSheet(){
-  const on = push.state === 'on';
-  if(!on){ enablePush(); return; }
-  openSheet(`<h3>${ICON('bell-ring')}Bildirimler açık</h3>
-    <div style="color:var(--muted);font-size:14px;margin:-6px 0 6px">Uygulama kapalıyken yeni mesajlar ve “Gidelim” oyları bu cihaza bildirim olarak gelir. Kendi mesajların için bildirim gelmez.</div>
-    <button class="menu-item" data-push="test">${ICON('send')}Test bildirimi gönder</button>
-    <button class="menu-item danger" data-push="off">${ICON('bell-off')}Bu cihazda kapat</button>`);
+  const on = push.state === 'on', h = (typeof pres !== 'undefined' && pres.pref) || 0;
+  const devTxt = on ? 'Bu cihazda bildirimler açık.' : push.state === 'needs-install' ? 'Bildirim için uygulamayı ana ekrana ekleyip oradan aç.' : push.state === 'denied' ? 'Bildirim izni kapalı: Ayarlar › Bildirimler › Yemek JP.' : push.state === 'unsupported' ? 'Bu tarayıcı bildirim desteklemiyor.' : 'Bu cihazda bildirimler kapalı.';
+  openSheet(`<h3>${ICON(on ? 'bell-ring' : 'bell-off')}Bildirim ayarları<span class="spacer"></span><button class="iconbtn" data-close aria-label="Kapat">${ICON('x')}</button></h3>
+    <div class="nset-dev ${on ? 'on' : ''}"><span>${devTxt}</span>${on ? '' : (push.state === 'off' ? '<button class="btn primary sm" data-push="on">Aç</button>' : '')}</div>
+    <h4>Bildirim türleri</h4>
+    <div class="nset-row"><div><b>Yeni sohbet mesajları</b><small>Her zaman açık</small></div>${ICON('check')}</div>
+    <div class="nset-row"><div><b>“Gidelim” oyları</b><small>Her zaman açık</small></div>${ICON('check')}</div>
+    <label class="toggle nset-tg"><span><b>Biri uygulamaya girince</b><small>Sadece bu ayarı açan kişiye gelir</small></span><input type="checkbox" id="prefOnline" ${h ? 'checked' : ''}></label>
+    ${h ? `<div class="nset-h"><small>Kişi en az şu kadar süre uygulamaya girmemişse bildir:</small><div class="opts">${ONLINE_OPTS.map(x => `<button class="chip" data-onlineh="${x}" aria-pressed="${x === h}">${x} saat</button>`).join('')}</div></div>` : ''}
+    ${on ? `<h4>Bu cihaz</h4><button class="menu-item" data-push="test">${ICON('send')}Test bildirimi gönder</button>
+    <button class="menu-item danger" data-push="off">${ICON('bell-off')}Bu cihazda kapat</button>` : ''}`);
 }
 document.addEventListener('click', ev => {
   const b = ev.target.closest('[data-push]'); if(!b) return;
   ev.stopPropagation();
   const a = b.dataset.push;
-  if(a === 'on') enablePush();
+  if(a === 'on'){ enablePush().then(() => { if(!$('#sheet').hidden && $('#prefOnline')) pushSheet(); }); }
   else if(a === 'off'){ closeSheet(); disablePush(); }
   else if(a === 'test'){ closeSheet(); testPush(); }
   else if(a === 'dismiss'){ store.set('yjp_push_dismiss', true); renderPushUI(); }
@@ -2939,13 +2964,91 @@ function foodInfo(cat, swap){
 document.addEventListener('click', ev => { const b = ev.target.closest('[data-info]'); if(!b) return; ev.stopPropagation(); foodInfo(b.dataset.info); }, true);
 
 
+/* ---------- çevrimiçi durumu + "biri uygulamaya girdi" bildirimi ---------- */
+// Firebase: /presence/{kişi} = {n, last, gap, conns:{bağlantı:{ts}}}   /prefs/{kişi}/online = saat (yoksa kapalı)
+var pres = { data: {}, uid: '', conn: null, ref: null, offset: 0, started: false, pref: 0 };
+const ONLINE_OPTS = [1, 3, 6, 12];
+function presDb(){ return window.firebase && firebase.apps && firebase.apps.length ? firebase.database() : null; }
+async function presOnline(){
+  const db = presDb(); if(!db || !me.name || document.hidden || pres.conn) return;
+  const uid = me.uid, ref = db.ref('presence/' + uid); pres.uid = uid; pres.ref = ref;
+  const conn = ref.child('conns').push(); pres.conn = conn;
+  try{
+    const v = (await ref.once('value')).val() || {};
+    if(pres.conn !== conn) return;                       // bu arada çevrimdışı olduk
+    const othersOn = v.conns && Object.keys(v.conns).length > 0;   // başka cihazda zaten açık
+    conn.onDisconnect().remove(); ref.child('last').onDisconnect().set(firebase.database.ServerValue.TIMESTAMP);
+    const now = Date.now() + pres.offset, gap = othersOn ? 0 : (v.last ? Math.max(0, now - v.last) : 1e11);
+    await ref.update({n: me.name, gap, on: firebase.database.ServerValue.TIMESTAMP});
+    await conn.set({ts: firebase.database.ServerValue.TIMESTAMP});
+    if(gap >= 3600e3 && typeof notifyPush === 'function') notifyPush('online', conn.key);
+  }catch(e){ console.warn('presence', e); }
+}
+function presOffline(){
+  const c = pres.conn, ref = pres.ref; pres.conn = null; if(!c || !ref) return;
+  c.onDisconnect().cancel(); c.remove();
+  ref.child('last').set(firebase.database.ServerValue.TIMESTAMP);
+}
+function initPresence(){
+  const db = presDb(); if(!db || pres.started) return; pres.started = true; window.__presOn = true;
+  db.ref('.info/serverTimeOffset').on('value', s => { pres.offset = s.val() || 0; });
+  db.ref('.info/connected').on('value', s => { if(s.val()){ pres.conn = null; presOnline(); } });   // yeniden bağlanınca tekrar kaydol
+  db.ref('presence').on('value', s => { pres.data = s.val() || {}; renderChatStatus(); });
+  if(me.name) db.ref('prefs/' + me.uid + '/online').on('value', s => { pres.pref = s.val() || 0; });
+  document.addEventListener('visibilitychange', () => { document.hidden ? presOffline() : presOnline(); });
+  window.addEventListener('pagehide', presOffline);
+  setInterval(() => { if(state.view === 'chat' && !document.hidden) renderChatStatus(); }, 60000);
+}
+function presRestart(oldUid){   // isim değişti
+  if(!pres.started) return;
+  presOffline();
+  const db = presDb();
+  if(db && oldUid && oldUid !== me.uid){
+    db.ref('prefs/' + oldUid + '/online').off();
+    db.ref('presence/' + oldUid).remove();   // eski isimle "son görülme" kalmasın
+    db.ref('prefs/' + oldUid).once('value').then(s => { if(s.val()) db.ref('prefs/' + me.uid).set(s.val()); db.ref('prefs/' + oldUid).remove(); });
+    db.ref('prefs/' + me.uid + '/online').on('value', s => { pres.pref = s.val() || 0; });
+  }
+  presOnline();
+}
+function agoShort(ts){
+  const m = Math.max(0, (Date.now() + pres.offset - ts) / 60000);
+  if(m < 2) return 'az önce'; if(m < 60) return Math.round(m) + ' dk önce';
+  const h = m / 60; if(h < 24) return Math.round(h) + ' sa önce';
+  const d = Math.round(h / 24); return d === 1 ? 'dün' : d + ' gün önce';
+}
+function presPeople(){
+  const lim = Date.now() + pres.offset - 30 * 864e5;
+  return Object.entries(pres.data).filter(([id, v]) => v && v.n && id !== me.uid && id !== idOf(me.name)).map(([id, v]) => ({id, n: v.n, on: !!(v.conns && Object.keys(v.conns).length), last: v.last || v.on || 0}))
+    .filter(p => p.on || p.last > lim).sort((a, b) => (b.on - a.on) || (b.last - a.last));
+}
+function presHTML(){
+  const ps = presPeople(); if(!ps.length) return '';
+  return ps.map(p => `<span class="pp ${p.on ? 'on' : ''}" title="${esc(p.n)}"><i></i>${esc(p.n.split(' ')[0])}${p.on ? '' : ' · ' + agoShort(p.last)}</span>`).join('');
+}
+async function setOnlinePref(h){
+  const db = presDb(); if(!db || !me.name){ toast('Önce bağlantı gerekli'); return; }
+  const was = pres.pref; pres.pref = h;
+  try{ await (h ? db.ref('prefs/' + me.uid + '/online').set(h) : db.ref('prefs/' + me.uid + '/online').remove()); }
+  catch(e){ pres.pref = was; toast('Kaydedilemedi: Firebase kuralları güncellenmeli'); return; }
+  toast(h ? `Biri ${h} saatten uzun aradan sonra girince bildirim gelecek` : 'Giriş bildirimleri kapandı');
+}
+document.addEventListener('change', ev => {
+  const t = ev.target; if(!t.matches || !t.matches('#prefOnline')) return;
+  setOnlinePref(t.checked ? (pres.pref || 3) : 0).then(() => pushSheet());
+}, true);
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-onlineh]'); if(!b) return; ev.stopPropagation();
+  setOnlinePref(+b.dataset.onlineh).then(() => pushSheet());
+}, true);
+
 /* ---------- start ---------- */
 applyTheme();
 updateNameBtn();
 applyMorning(true);
 setView('list');
 if(me.name) startGeo(); else showOnboarding();
-initChat(); updateChatBadge(); renderChatStatus(); initExp(); updateExpBadge(); initVotes();
+initChat(); updateChatBadge(); renderChatStatus(); initExp(); updateExpBadge(); initVotes(); initPresence();
 pushStatus(); handleNav(location.href); if(location.search) history.replaceState(null, '', location.pathname);
 if('serviceWorker' in navigator && location.protocol==='https:') navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
