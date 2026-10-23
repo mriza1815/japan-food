@@ -2523,7 +2523,7 @@ function expSheet(opts){
   if(old && old.mode==='split'){
     const pd = old.paid||{}, sh = old.share||{};
     ui.payer = PIDS.filter(p => pd[p]).length > 1 ? 'both' : (PIDS.find(p => pd[p]) || mp);
-    ui.split = (sh.riza===Math.floor(old.total/2) && sh.selvi===old.total-Math.floor(old.total/2)) ? 'half' : (PIDS.find(p => sh[p]===old.total) ? 'all_'+PIDS.find(p => sh[p]===old.total) : 'custom');
+    ui.split = (sh.riza===Math.floor(old.total/2) && sh.selvi===old.total-Math.floor(old.total/2)) ? 'half' : (sh.riza===Math.round(old.total/3) && sh.selvi===old.total-Math.round(old.total/3)) ? 'third' : (PIDS.find(p => sh[p]===old.total) ? 'all_'+PIDS.find(p => sh[p]===old.total) : 'custom');
   }
   const d = new Date(f.ts);
   const dv = dayKey(f.ts), tv = String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
@@ -2548,7 +2548,7 @@ function expSheet(opts){
       if(f.mode==='own'){ $s('#eDyn').innerHTML = `<div class="enote">${ICON('info','sm')}Sadece toplam tutar kaydedilir; borç hesabına girmez.</div>`; return; }
       const T = total();
       const payChips = PAYERS.map(([p,l]) => `<button class="chip" data-pay="${p}" aria-pressed="${ui.payer===p}">${esc(l)} ödedi</button>`).join('') + `<button class="chip" data-pay="both" aria-pressed="${ui.payer==='both'}">İkisi de ödedi</button>`;
-      const splitChips = `<button class="chip" data-sp="half" aria-pressed="${ui.split==='half'}">Yarı yarıya</button>` + PAYERS.map(([p,l]) => `<button class="chip" data-sp="all_${p}" aria-pressed="${ui.split==='all_'+p}">Hepsi ${esc(l)}’nın</button>`).join('') + `<button class="chip" data-sp="custom" aria-pressed="${ui.split==='custom'}">Tutar gir</button>`;
+      const splitChips = `<button class="chip" data-sp="half" aria-pressed="${ui.split==='half'}">Yarı yarıya</button><button class="chip" data-sp="third" aria-pressed="${ui.split==='third'}">3’e böl (Rıza ⅓ · Selvi ⅔)</button>` + PAYERS.map(([p,l]) => `<button class="chip" data-sp="all_${p}" aria-pressed="${ui.split==='all_'+p}">Hepsi ${esc(l)}’${p==='selvi'?'nin':'nın'}</button>`).join('') + `<button class="chip" data-sp="custom" aria-pressed="${ui.split==='custom'}">Tutar gir</button>`;
       const pdv = p => (f.paid||{})[p] ?? '', shv = p => (f.share||{})[p] ?? '';
       $s('#eDyn').innerHTML = `
         <label class="flabel">Kim ödedi?</label><div class="opts">${payChips}</div>
@@ -2564,6 +2564,7 @@ function expSheet(opts){
       if(ui.payer==='both'){ /* değerler inputlardan */ }
       else { f.paid = {}; PIDS.forEach(p => f.paid[p] = p===ui.payer ? T : 0); }
       if(ui.split==='half'){ const a = Math.floor(T/2); f.share = {riza:a, selvi:T-a}; }
+      else if(ui.split==='third'){ const a = Math.round(T/3); f.share = {riza:a, selvi:T-a}; }
       else if(ui.split.startsWith('all_')){ const w = ui.split.slice(4); f.share = {}; PIDS.forEach(p => f.share[p] = p===w ? T : 0); }
       const ps = PIDS.reduce((a,p) => a+((f.paid||{})[p]||0), 0), ss = PIDS.reduce((a,p) => a+((f.share||{})[p]||0), 0);
       let msg = '', bad = false;
