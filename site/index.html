@@ -944,6 +944,8 @@ body.kb .toast{bottom:calc(var(--kb,0px) + var(--comp,64px) + 12px)}
 .onb .btn{width:100%;margin-top:12px;min-height:50px;font-size:16px}
 
 /* ---------- hesap ---------- */
+.seg.wide.etrip{margin:0 0 14px}
+.etrip button{font-size:14px}
 .tabbar .badge.amber{background:#d97706}
 .esum{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:var(--shadow);margin-bottom:18px}
 .owe{display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px 12px;padding:4px 2px 12px;border-bottom:1px solid var(--line);margin-bottom:12px}
@@ -2411,6 +2413,12 @@ const exp = { items: new Map(), ref: null, skip: new Set(store.get('yjp_exp_skip
 store.get('yjp_exp_cache', []).forEach(e => exp.items.set(e.id, e));
 const yen = n => '¥' + Math.round(n||0).toLocaleString('tr-TR');
 const toInt = s => { const v = parseInt(String(s||'').replace(/[^\d]/g, ''), 10); return isNaN(v) ? 0 : v; };
+const TRIPS = {jp:{l:'Japonya', flag:'🇯🇵', cur:'JPY', sym:'¥'}, vn:{l:'Vietnam', flag:'🇻🇳', cur:'VND', sym:'₫'}};
+exp.trip = store.get('yjp_exp_trip', Date.now() >= new Date(2026,10,8).getTime() ? 'vn' : 'jp');
+if(!TRIPS[exp.trip]) exp.trip = 'jp';
+const tripOf = e => (e && e.trip==='vn') ? 'vn' : 'jp';
+const inTrip = e => tripOf(e)===exp.trip;
+const money = (n, t) => (t||exp.trip)==='vn' ? Math.round(n||0).toLocaleString('vi-VN') + ' ₫' : yen(n);
 const normName = s => String(s||'').toLocaleLowerCase('tr').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ı/g, 'i');
 function myPayer(){ const n = normName(me.name); return PAYERS.find(([id, l]) => n && (n.startsWith(normName(l)) || normName(l).startsWith(n)))?.[0] || null; }
 function otherOf(p){ return PIDS.find(x => x!==p); }
@@ -2429,11 +2437,12 @@ function expChanged(){
   if(expRaf) return;
   expRaf = requestAnimationFrame(() => { expRaf = 0; store.set('yjp_exp_cache', [...exp.items.values()]); if(state.view==='exp') renderExp(); updateExpBadge(); });
 }
-function sortedExp(){ return [...exp.items.values()].sort((a,b) => b.ts-a.ts); }
+function sortedExp(){ return [...exp.items.values()].filter(inTrip).sort((a,b) => b.ts-a.ts); }
 function expSummary(){
   const s = {total:0, cnt:0, own:0, ownCnt:0, paid:{}, share:{}, net:{}, settled:0};
   PIDS.forEach(p => { s.paid[p]=0; s.share[p]=0; s.net[p]=0; });
   for(const e of exp.items.values()){
+    if(!inTrip(e)) continue;
     if(e.mode==='settle'){ s.net[e.from] += e.total; s.net[e.to] -= e.total; s.settled += e.total; continue; }
     s.total += e.total; s.cnt++;
     if(e.mode==='own'){ s.own += e.total; s.ownCnt++; continue; }
@@ -2453,33 +2462,34 @@ function pendingVisits(){
 function updateExpBadge(){ const n = pendingVisits().length; const b = $('#expBadge'); b.textContent = n; b.hidden = !n; }
 
 function expLine(e){
+  const M = n => money(n, tripOf(e));
   if(e.mode==='settle') return `<span class="tag ok">${ICON('handshake','sm')}${esc(PNAME[e.from])} → ${esc(PNAME[e.to])} ödedi</span>`;
   if(e.mode==='own') return `<span class="tag">${ICON('users','sm')}Herkes kendi hesabını ödedi</span>`;
   const t = [];
-  PIDS.forEach(p => { const v = (e.paid||{})[p]||0; if(v) t.push(`<span class="tag pay">${ICON('wallet','sm')}${esc(PNAME[p])} ödedi ${yen(v)}</span>`); });
-  const sh = PIDS.map(p => `${PNAME[p]} ${yen((e.share||{})[p]||0)}`).join(' · ');
+  PIDS.forEach(p => { const v = (e.paid||{})[p]||0; if(v) t.push(`<span class="tag pay">${ICON('wallet','sm')}${esc(PNAME[p])} ödedi ${M(v)}</span>`); });
+  const sh = PIDS.map(p => `${PNAME[p]} ${M((e.share||{})[p]||0)}`).join(' · ');
   t.push(`<span class="tag">${ICON('scale','sm')}Pay: ${esc(sh)}</span>`);
   return t.join('');
 }
 function renderExp(){
   const box = $('#expBody');
-  if(!exp.loaded && !exp.items.size && exp.ref){ box.innerHTML = skExp(); box._seen = null; return; } const s = expSummary(); const list = sortedExp(); const pend = pendingVisits();
-  let h = '';
+  if(!exp.loaded && !exp.items.size && exp.ref){ box.innerHTML = skExp(); box._seen = null; return; } const s = expSummary(); const list = sortedExp(); const pend = exp.trip==='jp' ? pendingVisits() : [];
+  let h = `<div class="seg wide etrip">${Object.entries(TRIPS).map(([k,t]) => `<button data-exp="trip" data-trip="${k}" aria-pressed="${exp.trip===k}">${t.flag} ${t.l} (${t.sym})</button>`).join('')}</div>`;
   // özet
   h += `<section class="esum">`;
   if(s.owe && s.owe.amount>0){
-    h += `<div class="owe"><div class="owe-l"><span>${esc(PNAME[s.owe.from])}</span>${ICON('arrow-right')}<span>${esc(PNAME[s.owe.to])}</span></div><div class="owe-a">${yen(s.owe.amount)}</div>
-      <div class="owe-t">${esc(PNAME[s.owe.from])}, ${esc(PDAT[s.owe.to])} ${yen(s.owe.amount)} borçlu</div>
+    h += `<div class="owe"><div class="owe-l"><span>${esc(PNAME[s.owe.from])}</span>${ICON('arrow-right')}<span>${esc(PNAME[s.owe.to])}</span></div><div class="owe-a">${money(s.owe.amount)}</div>
+      <div class="owe-t">${esc(PNAME[s.owe.from])}, ${esc(PDAT[s.owe.to])} ${money(s.owe.amount)} borçlu</div>
       <button class="btn" data-exp="settle">${ICON('handshake')}Ödeşme kaydet</button></div>`;
   } else {
     h += `<div class="owe even">${ICON('check-check','lg')}<div class="owe-t">${list.length ? 'Hesaplar denk, kimsenin borcu yok' : 'Henüz hesap girilmedi'}</div></div>`;
   }
   h += `<div class="egrid">
-    <div class="stat"><b>${yen(s.total)}</b><span>toplam yemek · ${s.cnt} hesap</span></div>
-    ${PAYERS.map(([p,l]) => `<div class="stat"><b>${yen(s.paid[p])}</b><span>${esc(l)} ödedi · payı ${yen(s.share[p])}</span></div>`).join('')}
+    <div class="stat"><b>${money(s.total)}</b><span>toplam yemek · ${s.cnt} hesap</span></div>
+    ${PAYERS.map(([p,l]) => `<div class="stat"><b>${money(s.paid[p])}</b><span>${esc(l)} ödedi · payı ${money(s.share[p])}</span></div>`).join('')}
   </div>`;
-  if(s.ownCnt) h += `<div class="enote">${ICON('users','sm')}Herkesin kendi ödediği ${s.ownCnt} hesap: ${yen(s.own)} (borç hesabına girmez)</div>`;
-  if(s.settled) h += `<div class="enote">${ICON('handshake','sm')}Yapılan ödeşmeler: ${yen(s.settled)}</div>`;
+  if(s.ownCnt) h += `<div class="enote">${ICON('users','sm')}Herkesin kendi ödediği ${s.ownCnt} hesap: ${money(s.own)} (borç hesabına girmez)</div>`;
+  if(s.settled) h += `<div class="enote">${ICON('handshake','sm')}Yapılan ödeşmeler: ${money(s.settled)}</div>`;
   h += `</section>`;
   // hesabı girilmemiş ziyaretler
   if(pend.length){
@@ -2495,10 +2505,10 @@ function renderExp(){
     h += `<h2 class="eh">Gün gün</h2>`;
     for(const [k, arr] of days){
       const dayTot = arr.filter(e => e.mode!=='settle').reduce((a,e) => a+e.total, 0);
-      h += `<section class="day"><h2>${esc(dayLabel(k))} <small>${dayTot ? yen(dayTot) : ''}</small></h2>` + arr.map(e => {
+      h += `<section class="day"><h2>${esc(dayLabel(k))} <small>${dayTot ? money(dayTot) : ''}</small></h2>` + arr.map(e => {
         const sub = [CHAT_TIME.format(new Date(e.ts)), e.mode!=='settle' ? (CITY_NAME[e.city]||'') : '', e.note||''].filter(Boolean).join(' · ');
         return `<button class="eitem ${e.mode}" data-exp="edit" data-id="${e.id}">
-          <div class="eh1"><span class="en">${e.mode==='settle' ? 'Ödeşme' : esc(e.n)}</span><span class="et">${yen(e.total)}</span></div>
+          <div class="eh1"><span class="en">${e.mode==='settle' ? 'Ödeşme' : esc(e.n)}</span><span class="et">${money(e.total)}</span></div>
           <div class="vsub">${esc(sub)}</div><div class="tags">${expLine(e)}</div></button>`;
       }).join('') + `</section>`;
     }
@@ -2515,9 +2525,10 @@ function expSheet(opts){
   if(!exp.ref){ toast('Bağlantı yok, tekrar dene'); return; }
   const old = opts.id ? exp.items.get(opts.id) : null;
   const mp = myPayer() || 'riza';
-  const f = old ? JSON.parse(JSON.stringify(old)) : {n:'', k:'', city:state.city, ts:Date.now(), total:0, mode:'split', paid:{}, share:{}, note:''};
-  if(!old && opts.item){ f.n = opts.item.n; f.k = opts.item.key; f.city = opts.item.city; }
-  if(!old && opts.visit){ f.n = opts.visit.n; f.k = opts.visit.key; f.city = opts.visit.city; f.ts = opts.visit.ts; }
+  const f = old ? JSON.parse(JSON.stringify(old)) : {n:'', k:'', city:exp.trip==='vn' ? '' : state.city, ts:Date.now(), total:0, mode:'split', paid:{}, share:{}, note:'', trip:exp.trip};
+  const T0 = old ? tripOf(old) : exp.trip, CUR = TRIPS[T0], M = n => money(n, T0);
+  if(!old && opts.item && T0==='jp'){ f.n = opts.item.n; f.k = opts.item.key; f.city = opts.item.city; }
+  if(!old && opts.visit && T0==='jp'){ f.n = opts.visit.n; f.k = opts.visit.key; f.city = opts.visit.city; f.ts = opts.visit.ts; }
   // ödeyen / pay seçenekleri
   const ui = {payer: mp, split:'third'};
   if(old && old.mode==='split'){
@@ -2533,8 +2544,8 @@ function expSheet(opts){
     <label class="flabel">Mekân</label>
     <div class="placepick"><input id="eName" class="field" value="${esc(f.n)}" placeholder="Mekân adı yaz veya ara" autocomplete="off"><div class="sugg" id="eSugg" hidden></div></div>
     <div class="frow"><div><label class="flabel">Tarih</label><input type="date" id="eDate" class="field" value="${dv}"></div><div><label class="flabel">Saat</label><input type="time" id="eTime" class="field" value="${tv}"></div></div>
-    <label class="flabel">Toplam hesap (JPY)</label>
-    <div class="yenin big"><span>¥</span><input id="eTotal" inputmode="numeric" pattern="[0-9]*" class="field" value="${f.total||''}" placeholder="0"></div>
+    <label class="flabel">Toplam hesap (${CUR.cur})</label>
+    <div class="yenin big"><span>${CUR.sym}</span><input id="eTotal" inputmode="numeric" pattern="[0-9]*" class="field" value="${f.total||''}" placeholder="0"></div>
     <div class="seg wide" id="eMode"><button data-m="split" aria-pressed="${f.mode!=='own'}">${ICON('scale','sm')}Bölüşelim</button><button data-m="own" aria-pressed="${f.mode==='own'}">${ICON('users','sm')}Herkes kendi ödedi</button></div>
     <div id="eDyn"></div>
     <label class="flabel">Not (isteğe bağlı)</label>
@@ -2552,9 +2563,9 @@ function expSheet(opts){
       const pdv = p => (f.paid||{})[p] ?? '', shv = p => (f.share||{})[p] ?? '';
       $s('#eDyn').innerHTML = `
         <label class="flabel">Kim ödedi?</label><div class="opts">${payChips}</div>
-        ${ui.payer==='both' ? `<div class="frow">${PAYERS.map(([p,l]) => `<div><label class="flabel">${esc(l)} ödedi</label><div class="yenin"><span>¥</span><input class="field" inputmode="numeric" pattern="[0-9]*" data-paid="${p}" value="${pdv(p)}" placeholder="0"></div></div>`).join('')}</div>` : ''}
+        ${ui.payer==='both' ? `<div class="frow">${PAYERS.map(([p,l]) => `<div><label class="flabel">${esc(l)} ödedi</label><div class="yenin"><span>${CUR.sym}</span><input class="field" inputmode="numeric" pattern="[0-9]*" data-paid="${p}" value="${pdv(p)}" placeholder="0"></div></div>`).join('')}</div>` : ''}
         <label class="flabel">Kimin payı ne kadar? <small>(kim ne yedi)</small></label><div class="opts">${splitChips}</div>
-        ${ui.split==='custom' ? `<div class="frow">${PAYERS.map(([p,l]) => `<div><label class="flabel">${esc(l)} payı</label><div class="yenin"><span>¥</span><input class="field" inputmode="numeric" pattern="[0-9]*" data-share="${p}" value="${shv(p)}" placeholder="0"></div></div>`).join('')}</div>` : ''}
+        ${ui.split==='custom' ? `<div class="frow">${PAYERS.map(([p,l]) => `<div><label class="flabel">${esc(l)} payı</label><div class="yenin"><span>${CUR.sym}</span><input class="field" inputmode="numeric" pattern="[0-9]*" data-share="${p}" value="${shv(p)}" placeholder="0"></div></div>`).join('')}</div>` : ''}
         <div class="eres" id="eRes"></div>`;
       calc();
     };
@@ -2569,11 +2580,11 @@ function expSheet(opts){
       const ps = PIDS.reduce((a,p) => a+((f.paid||{})[p]||0), 0), ss = PIDS.reduce((a,p) => a+((f.share||{})[p]||0), 0);
       let msg = '', bad = false;
       if(!T) msg = 'Toplam tutarı gir';
-      else if(ps!==T){ msg = `Ödenenlerin toplamı ${yen(ps)}, hesap ${yen(T)} — ${yen(Math.abs(T-ps))} ${ps<T?'eksik':'fazla'}`; bad = true; }
-      else if(ss!==T){ msg = `Payların toplamı ${yen(ss)}, hesap ${yen(T)} — ${yen(Math.abs(T-ss))} ${ss<T?'eksik':'fazla'}`; bad = true; }
+      else if(ps!==T){ msg = `Ödenenlerin toplamı ${M(ps)}, hesap ${M(T)} — ${M(Math.abs(T-ps))} ${ps<T?'eksik':'fazla'}`; bad = true; }
+      else if(ss!==T){ msg = `Payların toplamı ${M(ss)}, hesap ${M(T)} — ${M(Math.abs(T-ss))} ${ss<T?'eksik':'fazla'}`; bad = true; }
       else {
         const net = PIDS.find(p => (f.paid[p]||0) - (f.share[p]||0) > 0);
-        msg = net ? `Bu hesapla <b>${esc(PNAME[otherOf(net)])} → ${esc(PNAME[net])}</b> ${yen(f.paid[net]-f.share[net])} borçlanır` : 'Bu hesapla kimse kimseye borçlanmaz';
+        msg = net ? `Bu hesapla <b>${esc(PNAME[otherOf(net)])} → ${esc(PNAME[net])}</b> ${M(f.paid[net]-f.share[net])} borçlanır` : 'Bu hesapla kimse kimseye borçlanmaz';
       }
       res.className = 'eres' + (bad ? ' bad' : ''); res.innerHTML = msg;
     };
@@ -2595,7 +2606,7 @@ function expSheet(opts){
       else if(el.id==='eName'){
         f.n = el.value; f.k = '';
         const q = el.value.trim().toLocaleLowerCase('tr'); const sg = $s('#eSugg');
-        if(q.length < 2){ sg.hidden = true; return; }
+        if(q.length < 2 || T0==='vn'){ sg.hidden = true; return; }
         const hits = DATA.items.filter(e => e.n.toLocaleLowerCase('tr').includes(q)).sort((a,b) => (a.city===state.city?0:1)-(b.city===state.city?0:1) || b.c-a.c).slice(0, 6);
         sg.innerHTML = hits.map(e => `<button data-sugg="${e.i}">${esc(e.n)} <small>${esc(CITY_NAME[e.city])}</small></button>`).join('');
         sg.hidden = !hits.length;
@@ -2610,8 +2621,9 @@ function expSheet(opts){
         if(ps!==T || ss!==T){ toast('Tutarlar hesapla uyuşmuyor'); return; }
       }
       const [y,mo,dd] = ($s('#eDate').value || dayKey(Date.now())).split('-').map(Number), [hh,mi] = ($s('#eTime').value || '12:00').split(':').map(Number);
-      const rec = {n:f.n, k:f.k||'', city:f.city||state.city, ts:new Date(y,mo-1,dd,hh,mi).getTime(), total:T, mode:f.mode, note:$s('#eNote').value.trim().slice(0,140),
+      const rec = {n:f.n, k:f.k||'', city:T0==='vn' ? (f.city||'') : (f.city||state.city), ts:new Date(y,mo-1,dd,hh,mi).getTime(), total:T, mode:f.mode, note:$s('#eNote').value.trim().slice(0,140),
         by:me.name||'', u:me.uid, up:firebase.database.ServerValue.TIMESTAMP};
+      if(T0==='vn') rec.trip = 'vn';
       if(f.mode==='split'){ rec.paid = {}; rec.share = {}; PIDS.forEach(p => { rec.paid[p] = f.paid[p]||0; rec.share[p] = f.share[p]||0; }); }
       const r = old ? exp.ref.child(old.id) : exp.ref.push();
       r.set(rec).catch(err => { toast('Kaydedilemedi: Firebase kuralları güncellenmeli'); console.warn(err); });
@@ -2628,6 +2640,7 @@ function expSheet(opts){
   });
 }
 function settleSheet(old){
+  const T0 = old ? tripOf(old) : exp.trip, CUR = TRIPS[T0];
   const s = expSummary();
   const from = old ? old.from : (s.owe ? s.owe.from : 'selvi'), amount = old ? old.total : (s.owe ? s.owe.amount : 0);
   const d = new Date(old ? old.ts : Date.now());
@@ -2635,7 +2648,7 @@ function settleSheet(old){
     <div style="color:var(--muted);font-size:14px;margin:-6px 0 8px">Biri diğerine borcunu ödediğinde kaydedin; borç bakiyesi buna göre düşer.</div>
     <label class="flabel">Kim kime ödedi?</label>
     <div class="opts" id="sDir">${PAYERS.map(([p,l]) => `<button class="chip" data-from="${p}" aria-pressed="${from===p}">${esc(l)} → ${esc(PNAME[otherOf(p)])}</button>`).join('')}</div>
-    <label class="flabel">Tutar (JPY)</label><div class="yenin big"><span>¥</span><input id="sAmt" inputmode="numeric" pattern="[0-9]*" class="field" value="${amount||''}" placeholder="0"></div>
+    <label class="flabel">Tutar (${CUR.cur})</label><div class="yenin big"><span>${CUR.sym}</span><input id="sAmt" inputmode="numeric" pattern="[0-9]*" class="field" value="${amount||''}" placeholder="0"></div>
     <label class="flabel">Tarih</label><input type="date" id="sDate" class="field" value="${dayKey(d.getTime())}">
     <div class="row2">${old ? `<button class="btn" id="sDel" style="color:#dc2626">${ICON('trash-2')}Sil</button>` : `<button class="btn" data-close>Vazgeç</button>`}<button class="btn primary" id="sSave">${ICON('check')}Kaydet</button></div>`,
   sh => {
@@ -2645,7 +2658,7 @@ function settleSheet(old){
     sh.querySelector('#sSave').addEventListener('click', () => {
       const T = toInt(sh.querySelector('#sAmt').value); if(!T){ toast('Tutarı gir'); return; }
       const [y,mo,dd] = sh.querySelector('#sDate').value.split('-').map(Number);
-      const rec = {n:'Ödeşme', k:'', city:'', ts:new Date(y,mo-1,dd, new Date().getHours(), new Date().getMinutes()).getTime(), total:T, mode:'settle', from:fr, to:otherOf(fr), note:'', by:me.name||'', u:me.uid, up:firebase.database.ServerValue.TIMESTAMP};
+      const rec = {n:'Ödeşme', k:'', city:'', ...(T0==='vn' ? {trip:'vn'} : {}), ts:new Date(y,mo-1,dd, new Date().getHours(), new Date().getMinutes()).getTime(), total:T, mode:'settle', from:fr, to:otherOf(fr), note:'', by:me.name||'', u:me.uid, up:firebase.database.ServerValue.TIMESTAMP};
       (old ? exp.ref.child(old.id) : exp.ref.push()).set(rec).catch(() => toast('Kaydedilemedi: Firebase kuralları güncellenmeli'));
       closeSheet(); toast('Ödeşme kaydedildi');
     });
@@ -2656,7 +2669,8 @@ $('#expBody').addEventListener('click', ev => {
   const b = ev.target.closest('[data-exp]'); if(!b) return;
   ev.stopPropagation();
   const a = b.dataset.exp;
-  if(a==='edit') expSheet({id:b.dataset.id});
+  if(a==='trip'){ exp.trip = b.dataset.trip; store.set('yjp_exp_trip', exp.trip); renderExp(); window.scrollTo(0, 0); }
+  else if(a==='edit') expSheet({id:b.dataset.id});
   else if(a==='settle') settleSheet(null);
   else if(a==='addv'){ const v = visits.find(x => x.id===b.dataset.vid); if(v) expSheet({visit:v}); }
   else if(a==='skip'){ exp.skip.add(b.dataset.vid); store.set('yjp_exp_skip', [...exp.skip]); renderExp(); updateExpBadge(); toast('Gizlendi'); }
